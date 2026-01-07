@@ -1,0 +1,9 @@
+{
+    "name": "Employee Tracker",
+    "short_name": "EmpTracker",
+    "description": "Track employee locations",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#667eea"
+  }

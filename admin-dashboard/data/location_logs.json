@@ -1,0 +1,34 @@
+[
+    {
+      "employeeId": "EMP001",
+      "timestamp": "2024-01-20T09:00:00Z",
+      "latitude": 31.5204,
+      "longitude": 74.3587,
+      "accuracy": 15.5,
+      "speed": 0.5
+    },
+    {
+      "employeeId": "EMP001",
+      "timestamp": "2024-01-20T11:00:00Z",
+      "latitude": 31.5250,
+      "longitude": 74.3620,
+      "accuracy": 12.3,
+      "speed": 5.2
+    },
+    {
+      "employeeId": "EMP002",
+      "timestamp": "2024-01-20T09:15:00Z",
+      "latitude": 31.5150,
+      "longitude": 74.3500,
+      "accuracy": 18.7,
+      "speed": 1.2
+    },
+    {
+      "employeeId": "EMP003",
+      "timestamp": "2024-01-20T10:30:00Z",
+      "latitude": 31.5300,
+      "longitude": 74.3650,
+      "accuracy": 22.1,
+      "speed": 0.0
+    }
+  ]
