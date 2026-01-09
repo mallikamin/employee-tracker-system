@@ -3,163 +3,540 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Employee Tracker - Admin Dashboard</title>
-    
-   <link rel="stylesheet" href="css/styles.css">
-   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-
-
+    <title>Admin Dashboard - Employee Tracker</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .dashboard-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #eee;
+        }
+        .header-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .stats {
+            background: #f8f9fa;
+            padding: 8px 15px;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        .stats span {
+            margin: 0 10px;
+        }
+        .tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 20px;
+        }
+        .tab-btn {
+            padding: 10px 20px;
+            border: none;
+            background: #f0f0f0;
+            cursor: pointer;
+            border-radius: 5px 5px 0 0;
+        }
+        .tab-btn.active {
+            background: #4CAF50;
+            color: white;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .dashboard-content {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 20px;
+        }
+        .employee-list {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .employee-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            margin-bottom: 10px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            border-left: 4px solid #4CAF50;
+        }
+        .employee-avatar {
+            width: 40px;
+            height: 40px;
+            background: #4CAF50;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            font-weight: bold;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background: #f8f9fa;
+        }
+        button {
+            padding: 8px 15px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        #map {
+            border: 2px solid #ddd;
+        }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <div class="dashboard-container">
+    <div class="dashboard-container">
         <header>
             <h1>👨‍💼 Employee Tracker - Admin Dashboard</h1>
             <div class="header-controls">
-                <button onclick="refreshData()">🔄 Refresh</button>
-                <button onclick="exportData()">📥 Export</button>
+                <button id="refreshBtn">🔄 Refresh</button>
+                <button id="exportBtn">📥 Export</button>
                 <div class="stats">
                     <span id="totalEmployees">0 employees</span>
-                    <span id="onlineCount">0 online</span>
+                    |
+                    <span id="totalLocations">0 locations</span>
+                    |
+                    <span id="lastUpdated">Never updated</span>
                 </div>
             </div>
         </header>
-
-          <div class="dashboard-content">
-            <div class="left-panel">
-                <h2>📍 Live Locations</h2>
-                <div id="map" style="height: 500px; border-radius: 10px;"></div>
-            </div>
-            
-            <div class="right-panel">
-                <h2>👥 Employees</h2>
-                <div id="employee-list" class="employee-list">
-                    Loading employees...
+        
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
+            <button class="tab-btn" data-tab="reports">Reports</button>
+            <button class="tab-btn" data-tab="map">Map View</button>
+        </div>
+        
+        <div class="tab-content active" id="dashboardTab">
+            <div class="dashboard-content">
+                <div class="left-panel">
+                    <h2>📍 Live Locations Map</h2>
+                    <div id="map" style="height: 500px;"></div>
+                </div>
+                
+                <div class="right-panel">
+                    <h2>👥 Active Employees</h2>
+                    <div id="employeesContainer" class="employee-list">
+                        Loading employees...
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-
-
-            <main class="dashboard">
-                <div class="tabs">
-                    <button class="tab-btn active" data-tab="map"><i class="fas fa-map"></i> Map View</button>
-                    <button class="tab-btn" data-tab="data"><i class="fas fa-table"></i> Data View</button>
-                    <button class="tab-btn" data-tab="reports"><i class="fas fa-file-alt"></i> Reports</button>
-                </div>
-
-                <div class="tab-content active" id="mapTab">
-                    <div class="map-header">
-                        <h3><i class="fas fa-location-dot"></i> Employee Locations</h3>
-                        <div class="map-controls">
-                            <button id="zoomIn" class="btn-small"><i class="fas fa-plus"></i></button>
-                            <button id="zoomOut" class="btn-small"><i class="fas fa-minus"></i></button>
-                            <button id="refreshMap" class="btn-small"><i class="fas fa-sync"></i></button>
-                        </div>
-                    </div>
-                    <div id="map"></div>
-                </div>
-
-                <div class="tab-content" id="dataTab">
-                    <h3><i class="fas fa-database"></i> Employee Data</h3>
-                    <div class="data-actions">
-                        <button id="addEmployee" class="btn"><i class="fas fa-user-plus"></i> Add Employee</button>
-                        <button id="exportAll" class="btn"><i class="fas fa-download"></i> Export All Data</button>
-                    </div>
-                    <div class="table-container">
-                        <table id="dataTable">
-                            <thead>
-                                <tr>
-                                    <th>Employee ID</th>
-                                    <th>Name</th>
-                                    <th>Department</th>
-                                    <th>Last Location</th>
-                                    <th>Last Seen</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tableBody">
-                                <!-- Data will be loaded here -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <div class="tab-content" id="reportsTab">
-                    <h3><i class="fas fa-chart-pie"></i> Generate Reports</h3>
-                    <div class="report-options">
-                        <div class="report-card">
-                            <i class="fas fa-calendar-day"></i>
-                            <h4>Daily Report</h4>
-                            <button class="btn-small" id="dailyReport">Generate</button>
-                        </div>
-                        <div class="report-card">
-                            <i class="fas fa-user"></i>
-                            <h4>Employee Report</h4>
-                            <button class="btn-small" id="employeeReport">Generate</button>
-                        </div>
-                        <div class="report-card">
-                            <i class="fas fa-building"></i>
-                            <h4>Department Report</h4>
-                            <button class="btn-small" id="deptReport">Generate</button>
-                        </div>
-                    </div>
-                    <div id="reportOutput"></div>
-                </div>
-            </main>
+        
+        <div class="tab-content" id="reportsTab">
+            <h2>📊 Detailed Reports</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Employee ID</th>
+                        <th>Name</th>
+                        <th>Department</th>
+                        <th>Last Location</th>
+                        <th>Last Seen</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <tr><td colspan="6">Loading data...</td></tr>
+                </tbody>
+            </table>
+            <div id="reportOutput" style="margin-top: 20px; padding: 20px; background: #f9f9f9; border-radius: 5px;"></div>
         </div>
-
-        <footer>
-            <p>Employee Tracker Dashboard | Last updated: <span id="lastUpdated">-</span></p>
-        </footer>
+        
+        <div class="tab-content" id="mapTab">
+            <h2>🗺️ Full Screen Map</h2>
+            <div id="fullMap" style="height: 600px;"></div>
+        </div>
     </div>
 
-    <!-- File input for data import -->
-    <input type="file" id="fileInput" accept=".json" style="display: none;">
-    <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyCZa6IhBQRxr11Uxi-s2fg3o5sZ0Sx0Kvs",
-  authDomain: "tracker-f78a7.firebaseapp.com",
-  projectId: "tracker-f78a7",
-  storageBucket: "tracker-f78a7.firebasestorage.app",
-  messagingSenderId: "1011575319382",
-  appId: "1:1011575319382:web:b75329c5490d8adbedc4f7"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-</script>
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- Firebase App (the SDK) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { 
+            getFirestore, 
+            collection, 
+            doc, 
+            onSnapshot, 
+            query, 
+            orderBy,
+            getDocs 
+        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-    <script src="js/map.js"></script>
-    <script type="module" src="js/app.js"></script>
+        // Your Firebase config
+        const firebaseConfig = {
+            apiKey: "AIzaSyCZa6IhBQRxr11Uxi-s2fg3o5sZ0Sx0Kvs",
+            authDomain: "tracker-f78a7.firebaseapp.com",
+            projectId: "tracker-f78a7",
+            storageBucket: "tracker-f78a7.appspot.com",
+            messagingSenderId: "1011575319382",
+            appId: "1:1011575319382:web:b75329c5490d8adbedc4f7"
+        };
 
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
 
+        console.log("✅ Firebase initialized for Admin Dashboard");
 
+        class AdminDashboard {
+            constructor() {
+                this.employees = {};
+                this.locations = [];
+                this.init();
+            }
 
+            init() {
+                this.setupUI();
+                this.loadData();
+                this.setupMap();
+                this.updateTime();
+            }
 
+            setupUI() {
+                // Tab switching
+                document.querySelectorAll(".tab-btn").forEach(btn => {
+                    btn.addEventListener("click", e => {
+                        this.switchTab(e.target.dataset.tab);
+                    });
+                });
 
-    <script>
-        function refreshData() {
-            if (window.loadEmployeeLocations) {
-                loadEmployeeLocations();
-                alert("Refreshing data...");
+                // Refresh button
+                document.getElementById('refreshBtn').addEventListener('click', () => {
+                    this.loadData();
+                });
+
+                // Export button
+                document.getElementById('exportBtn').addEventListener('click', () => {
+                    this.exportData();
+                });
+            }
+
+            switchTab(tab) {
+                document.querySelectorAll(".tab-btn").forEach(b =>
+                    b.classList.toggle("active", b.dataset.tab === tab)
+                );
+                document.querySelectorAll(".tab-content").forEach(c =>
+                    c.classList.toggle("active", c.id === tab + "Tab")
+                );
+                
+                if (tab === 'map') {
+                    this.setupFullMap();
+                }
+            }
+
+            async loadData() {
+                await this.loadEmployees();
+                await this.loadLocations();
+                this.updateUI();
+            }
+
+            async loadEmployees() {
+                try {
+                    const querySnapshot = await getDocs(collection(db, "employees"));
+                    this.employees = {};
+                    querySnapshot.forEach(doc => {
+                        this.employees[doc.id] = { id: doc.id, ...doc.data() };
+                    });
+                    console.log(`Loaded ${Object.keys(this.employees).length} employees`);
+                } catch (error) {
+                    console.error("Error loading employees:", error);
+                }
+            }
+
+            async loadLocations() {
+                try {
+                    const q = query(collection(db, "locations"), orderBy("clientTimestamp", "desc"));
+                    const querySnapshot = await getDocs(q);
+                    this.locations = [];
+                    querySnapshot.forEach(doc => {
+                        this.locations.push({ id: doc.id, ...doc.data() });
+                    });
+                    console.log(`Loaded ${this.locations.length} locations`);
+                } catch (error) {
+                    console.error("Error loading locations:", error);
+                }
+            }
+
+            updateUI() {
+                this.renderEmployees();
+                this.renderTable();
+                this.updateStats();
+                this.updateMap();
+            }
+
+            renderEmployees() {
+                const container = document.getElementById("employeesContainer");
+                if (!container) return;
+
+                const employeeList = Object.values(this.employees);
+                
+                if (employeeList.length === 0) {
+                    container.innerHTML = "<p>No employees registered yet</p>";
+                    return;
+                }
+
+                container.innerHTML = employeeList.map(emp => {
+                    // Find latest location for this employee
+                    const employeeLocs = this.locations.filter(loc => loc.employeeId === emp.id);
+                    const lastLocation = employeeLocs[0];
+                    
+                    return `
+                        <div class="employee-item">
+                            <div class="employee-avatar">${emp.name?.charAt(0) || '?'}</div>
+                            <div>
+                                <strong>${emp.name || 'Unknown'}</strong><br>
+                                ${emp.id} | ${emp.department || 'N/A'}<br>
+                                ${lastLocation ? 
+                                    `<small>📍 ${lastLocation.lat?.toFixed(4)}, ${lastLocation.lng?.toFixed(4)}</small><br>
+                                     <small>⏱️ ${this.getTimeAgo(lastLocation.clientTimestamp)}</small>` : 
+                                    '<small>No location data</small>'
+                                }
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            renderTable() {
+                const tbody = document.getElementById("tableBody");
+                if (!tbody) return;
+
+                const employeeList = Object.values(this.employees);
+                
+                if (employeeList.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6">No employees found</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = employeeList.map(emp => {
+                    const employeeLocs = this.locations.filter(loc => loc.employeeId === emp.id);
+                    const lastLocation = employeeLocs[0];
+                    
+                    return `
+                        <tr>
+                            <td>${emp.id}</td>
+                            <td>${emp.name || 'Unknown'}</td>
+                            <td>${emp.department || 'N/A'}</td>
+                            <td>${lastLocation ? 
+                                `${lastLocation.lat?.toFixed(5)}, ${lastLocation.lng?.toFixed(5)}` : 
+                                '-'
+                            }</td>
+                            <td>${lastLocation ? 
+                                this.formatDate(lastLocation.clientTimestamp) : 
+                                'Never'
+                            }</td>
+                            <td>
+                                <button onclick="admin.viewEmployee('${emp.id}')">View</button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+
+            updateStats() {
+                // Update DOM elements
+                const totalEmployees = document.getElementById('totalEmployees');
+                const totalLocations = document.getElementById('totalLocations');
+                const lastUpdated = document.getElementById('lastUpdated');
+                
+                if (totalEmployees) totalEmployees.textContent = `${Object.keys(this.employees).length} employees`;
+                if (totalLocations) totalLocations.textContent = `${this.locations.length} locations`;
+                if (lastUpdated) lastUpdated.textContent = `Updated: ${new Date().toLocaleTimeString()}`;
+            }
+
+            setupMap() {
+                if (!window.map) {
+                    window.map = L.map('map').setView([31.5497, 74.3436], 12); // Default to Lahore
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        attribution: '© OpenStreetMap'
+                    }).addTo(window.map);
+                }
+                this.updateMap();
+            }
+
+            setupFullMap() {
+                if (!window.fullMap) {
+                    window.fullMap = L.map('fullMap').setView([31.5497, 74.3436], 12);
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        attribution: '© OpenStreetMap'
+                    }).addTo(window.fullMap);
+                }
+                this.updateFullMap();
+            }
+
+            updateMap() {
+                if (!window.map) return;
+                
+                // Clear existing markers
+                window.map.eachLayer(layer => {
+                    if (layer instanceof L.Marker) {
+                        window.map.removeLayer(layer);
+                    }
+                });
+                
+                // Add markers for latest location of each employee
+                Object.values(this.employees).forEach(emp => {
+                    const employeeLocs = this.locations.filter(loc => loc.employeeId === emp.id);
+                    const lastLocation = employeeLocs[0];
+                    
+                    if (lastLocation && lastLocation.lat && lastLocation.lng) {
+                        const marker = L.marker([lastLocation.lat, lastLocation.lng])
+                            .addTo(window.map)
+                            .bindPopup(`
+                                <strong>${emp.name}</strong><br>
+                                ${emp.id}<br>
+                                ${emp.department}<br>
+                                ${this.formatDate(lastLocation.clientTimestamp)}
+                            `);
+                    }
+                });
+            }
+
+            updateFullMap() {
+                if (!window.fullMap) return;
+                
+                // Clear existing markers
+                window.fullMap.eachLayer(layer => {
+                    if (layer instanceof L.Marker) {
+                        window.fullMap.removeLayer(layer);
+                    }
+                });
+                
+                // Add all location markers
+                this.locations.forEach(loc => {
+                    if (loc.lat && loc.lng) {
+                        const marker = L.marker([loc.lat, loc.lng])
+                            .addTo(window.fullMap)
+                            .bindPopup(`
+                                <strong>${loc.employeeName}</strong><br>
+                                ${loc.employeeId}<br>
+                                ${this.formatDate(loc.clientTimestamp)}
+                            `);
+                    }
+                });
+            }
+
+            viewEmployee(employeeId) {
+                const emp = this.employees[employeeId];
+                const employeeLocs = this.locations.filter(loc => loc.employeeId === employeeId);
+                
+                let html = `<h3>${emp.name} (${employeeId})</h3>`;
+                html += `<p><strong>Department:</strong> ${emp.department || 'N/A'}</p>`;
+                html += `<p><strong>Total Location Points:</strong> ${employeeLocs.length}</p>`;
+                
+                html += `<h4>Recent Locations:</h4>`;
+                html += `<div style="max-height: 300px; overflow-y: auto;">`;
+                
+                employeeLocs.slice(0, 20).forEach((loc, index) => {
+                    html += `
+                        <div style="padding: 10px; border-bottom: 1px solid #eee; margin-bottom: 5px;">
+                            <strong>#${index + 1}</strong> ${this.formatDate(loc.clientTimestamp)}<br>
+                            📍 ${loc.lat?.toFixed(6)}, ${loc.lng?.toFixed(6)}<br>
+                            <small>Accuracy: ${loc.accuracy ? Math.round(loc.accuracy) + 'm' : 'N/A'}</small>
+                        </div>
+                    `;
+                });
+                
+                html += `</div>`;
+                
+                this.switchTab("reports");
+                document.getElementById("reportOutput").innerHTML = html;
+            }
+
+            async exportData() {
+                const exportData = {
+                    timestamp: new Date().toISOString(),
+                    employees: Object.values(this.employees),
+                    locations: this.locations
+                };
+                
+                const dataStr = JSON.stringify(exportData, null, 2);
+                const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+                
+                const link = document.createElement('a');
+                link.setAttribute('href', dataUri);
+                link.setAttribute('download', `employee_tracker_export_${new Date().toISOString().split('T')[0]}.json`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                alert(`Exported ${this.locations.length} locations and ${Object.keys(this.employees).length} employees`);
+            }
+
+            getTimeAgo(timestamp) {
+                if (!timestamp) return 'Unknown';
+                
+                const date = new Date(timestamp);
+                const seconds = Math.floor((new Date() - date) / 1000);
+                
+                if (seconds < 60) return `${seconds} seconds ago`;
+                if (seconds < 3600) return `${Math.floor(seconds / 60)} minutes ago`;
+                if (seconds < 86400) return `${Math.floor(seconds / 3600)} hours ago`;
+                return `${Math.floor(seconds / 86400)} days ago`;
+            }
+
+            formatDate(timestamp) {
+                if (!timestamp) return 'Unknown';
+                const date = new Date(timestamp);
+                return date.toLocaleString();
+            }
+
+            updateTime() {
+                setInterval(() => {
+                    const now = new Date();
+                    const timeElement = document.getElementById('currentTime');
+                    if (timeElement) {
+                        timeElement.textContent = now.toLocaleTimeString();
+                    }
+                }, 1000);
             }
         }
-        
-        async function exportData() {
-            // Export functionality here
-            alert("Export feature coming soon!");
-        }
+
+        // Initialize dashboard
+        window.admin = new AdminDashboard();
     </script>
-
-
-
-
 </body>
 </html>
