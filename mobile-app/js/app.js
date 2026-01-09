@@ -186,6 +186,42 @@ class EmployeeTrackerApp {
         }
     }
 
+
+
+    initBackgroundSync() {
+        // Register background sync
+        if ('serviceWorker' in navigator && 'SyncManager' in window) {
+            navigator.serviceWorker.ready.then(registration => {
+                return registration.sync.register('sync-locations');
+            }).then(() => {
+                console.log('Background sync registered');
+            }).catch(err => {
+                console.log('Background sync registration failed:', err);
+            });
+        }
+        
+        // Auto-sync when coming online
+        window.addEventListener('online', () => {
+            console.log('Device is online, syncing...');
+            this.syncOfflineLocations();
+        });
+        
+        // Periodic sync every 15 minutes
+        setInterval(() => {
+            if (navigator.onLine && this.watchId) {
+                this.syncOfflineLocations();
+            }
+        }, 15 * 60 * 1000); // 15 minutes
+    }
+
+
+
+
+
+
+
+
+
     async toggleTracking() {
         if (this.watchId) {
             this.stopTracking();
@@ -200,28 +236,52 @@ class EmployeeTrackerApp {
             alert("Geolocation not supported");
             return;
         }
-
+    
         // Request permission first
         try {
-            await this.getCurrentLocation();
-            
+            const position = await new Promise((resolve, reject) => {
+                navigator.geolocation.getCurrentPosition(resolve, reject, {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                });
+            });
+    
+            // Permission granted - start watching
             this.watchId = navigator.geolocation.watchPosition(
-                pos => this.saveLocation(pos),
-                err => {
-                    console.error("GPS error", err);
+                async (pos) => {
+                    try {
+                        await this.saveLocation(pos);
+                        console.log("📍 Location saved:", pos.coords.latitude, pos.coords.longitude);
+                    } catch (error) {
+                        console.error("Failed to save location:", error);
+                        // Store offline for later sync
+                        this.saveLocationOffline(pos);
+                    }
+                },
+                (err) => {
+                    console.error("GPS watch error:", err);
                     alert("GPS error: " + err.message);
+                    this.watchId = null;
+                    this.render();
                 },
                 {
                     enableHighAccuracy: true,
-                    maximumAge: 30000,
-                    timeout: 10000
+                    maximumAge: 30000,  // 30 seconds
+                    timeout: 15000
                 }
             );
-
-            alert("📍 Live tracking started!");
+    
+            console.log("📍 Live tracking started, watchId:", this.watchId);
+            alert("✅ Live tracking started!\n\nApp will continue tracking in background if you:\n1. Keep this tab open\n2. Install as PWA (Add to Home Screen)");
+            
+            // Initialize background sync if supported
+            this.initBackgroundSync();
             
         } catch (error) {
-            alert("❌ Need location permission to track");
+            console.error("Location permission denied:", error);
+            alert("❌ Location permission required!\n\nPlease enable location services and refresh.");
+            return;
         }
     }
 
@@ -232,6 +292,74 @@ class EmployeeTrackerApp {
             alert("Tracking stopped");
         }
     }
+
+
+
+// Add to EmployeeTrackerApp class
+saveLocationOffline(position) {
+    if (!this.employee) return;
+    
+    const offlineLocation = {
+        lat: position.coords.latitude,
+        lng: position.coords.longitude,
+        accuracy: position.coords.accuracy,
+        speed: position.coords.speed || 0,
+        timestamp: new Date().toISOString(),
+        employeeId: this.employee.employeeId,
+        employeeName: this.employee.name,
+        deviceId: this.employee.deviceId,
+        synced: false
+    };
+    
+    // Save to IndexedDB or localStorage
+    const key = 'offline_locations';
+    let offlineQueue = JSON.parse(localStorage.getItem(key) || '[]');
+    offlineQueue.push(offlineLocation);
+    
+    // Keep only last 100 offline locations
+    if (offlineQueue.length > 100) {
+        offlineQueue = offlineQueue.slice(-100);
+    }
+    
+    localStorage.setItem(key, JSON.stringify(offlineQueue));
+    console.log("📍 Saved offline, queue size:", offlineQueue.length);
+}
+
+async syncOfflineLocations() {
+    const key = 'offline_locations';
+    let offlineQueue = JSON.parse(localStorage.getItem(key) || '[]');
+    
+    if (offlineQueue.length === 0) return;
+    
+    const toSync = offlineQueue.filter(loc => !loc.synced);
+    
+    for (const location of toSync) {
+        try {
+            await addDoc(collection(db, "locations"), {
+                ...location,
+                timestamp: serverTimestamp(),
+                synced: true,
+                wasOffline: true
+            });
+            
+            location.synced = true;
+            console.log("✅ Synced offline location");
+        } catch (error) {
+            console.error("Failed to sync offline location:", error);
+            break; // Stop if error
+        }
+    }
+    
+    // Update queue
+    offlineQueue = offlineQueue.filter(loc => !loc.synced);
+    localStorage.setItem(key, JSON.stringify(offlineQueue));
+}
+
+
+
+
+
+
 
     async getCurrentLocation() {
         return new Promise((resolve, reject) => {

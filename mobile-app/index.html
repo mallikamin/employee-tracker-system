@@ -32,6 +32,41 @@ const firebaseConfig = {
 
 </script>
 
+<script>
+// Register Service Worker for background sync
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').then((registration) => {
+            console.log('ServiceWorker registered:', registration);
+            
+            // Request periodic background sync (if supported)
+            if ('periodicSync' in registration) {
+                registration.periodicSync.register('location-sync', {
+                    minInterval: 15 * 60 * 1000 // 15 minutes
+                }).then(() => {
+                    console.log('Periodic sync registered');
+                }).catch(err => {
+                    console.log('Periodic sync failed:', err);
+                });
+            }
+        }).catch((err) => {
+            console.log('ServiceWorker registration failed:', err);
+        });
+    });
+}
+
+// Listen for messages from Service Worker
+navigator.serviceWorker.addEventListener('message', event => {
+    if (event.data.type === 'SYNC_OFFLINE_DATA') {
+        if (window.app && window.app.syncOfflineLocations) {
+            window.app.syncOfflineLocations();
+        }
+    }
+});
+</script>
+
+
+
     <script type="module" src="js/app.js"></script>
 
 
