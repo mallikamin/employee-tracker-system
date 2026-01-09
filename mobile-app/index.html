@@ -106,27 +106,30 @@ const firebaseConfig = {
 // Register Service Worker for background sync
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
+        const swPath = '/employee-tracker-system/mobile-app/sw.js';
         navigator.serviceWorker.register('/sw.js').then((registration) => {
             console.log('ServiceWorker registered:', registration);
             
             // Request periodic background sync (if supported)
-            if ('periodicSync' in registration) {
-                registration.periodicSync.register('location-sync', {
-                    minInterval: 15 * 60 * 1000 // 15 minutes
-                }).then(() => {
-                    console.log('Periodic sync registered');
-                }).catch(err => {
-                    console.log('Periodic sync failed:', err);
-                });
+              if ('sync' in registration) {
+                registration.sync.register('sync-locations')
+                    .then(() => console.log('Background sync registered'))
+                    .catch(err => console.log('Sync registration failed:', err));
             }
+            
         }).catch((err) => {
-            console.log('ServiceWorker registration failed:', err);
+            console.log('❌ ServiceWorker registration failed:', err);
+            // Fallback: Try relative path
+            navigator.serviceWorker.register('./sw.js')
+                .then(reg => console.log('Fallback SW registered:', reg.scope))
+                .catch(e => console.log('Both SW attempts failed'));
         });
     });
 }
 
 // Listen for messages from Service Worker
 navigator.serviceWorker.addEventListener('message', event => {
+    console.log('Message from SW:', event.data);
     if (event.data.type === 'SYNC_OFFLINE_DATA') {
         if (window.app && window.app.syncOfflineLocations) {
             window.app.syncOfflineLocations();
