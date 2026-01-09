@@ -17,7 +17,6 @@
     </div>
     <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCZa6IhBQRxr11Uxi-s2fg3o5sZ0Sx0Kvs",
@@ -28,8 +27,9 @@ const firebaseConfig = {
   appId: "1:1011575319382:web:b75329c5490d8adbedc4f7"
 };
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+ window.firebaseApp = initializeApp(firebaseConfig);
+        console.log("✅ Firebase initialized");
+
 </script>
 
     <script type="module" src="js/app.js"></script>
