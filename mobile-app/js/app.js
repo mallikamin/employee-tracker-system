@@ -30,6 +30,8 @@ class EmployeeTrackerApp {
     constructor() {
         this.employee = null;
         this.watchId = null;
+        this.periodicInterval = null;  // For 15-min intervals
+        this.lastLocationTime = null;
         this.init();
     }
 
@@ -153,13 +155,16 @@ class EmployeeTrackerApp {
         const empId = document.getElementById("empId").value.trim();
         const name = document.getElementById("empName").value.trim();
         const dept = document.getElementById("empDept").value.trim() || "General";
-
+    
         if (!empId || !name) {
             alert("Employee ID and Name required");
             return;
         }
-
+    
         try {
+            // First get location BEFORE registration
+            const position = await this.getCurrentLocationWithPermission();
+            
             this.employee = {
                 employeeId: empId,
                 name: name,
@@ -167,24 +172,58 @@ class EmployeeTrackerApp {
                 deviceId: 'DEV-' + Math.random().toString(36).substr(2, 9),
                 registeredAt: new Date().toISOString()
             };
-
-            // Save to Firebase
+    
+            // 1. Save employee to Firebase
             await setDoc(doc(db, "employees", empId), {
                 ...this.employee,
                 registeredAt: serverTimestamp()
             });
-
-            // Save locally
+    
+            // 2. Immediately save initial location
+            await this.saveLocation(position, true); // true = isInitial
+            
+            // 3. Save locally
             localStorage.setItem("employee_profile", JSON.stringify(this.employee));
-
-            alert("✅ Registered successfully!");
+            
+            // 4. Start periodic tracking
+            this.startTracking();
+    
+            alert("✅ Registered successfully! First location captured.");
             this.render();
             
         } catch (error) {
             console.error("Registration error:", error);
-            alert("❌ Registration failed: " + error.message);
+            if (error.code === 1) { // PERMISSION_DENIED
+                alert("❌ Location permission required!\n\nPlease enable location access to register.");
+            } else {
+                alert("❌ Registration failed: " + error.message);
+            }
         }
     }
+
+
+
+
+    getCurrentLocationWithPermission() {
+        return new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(
+                resolve,
+                reject,
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                }
+            );
+        });
+    }
+    
+
+
+
+
+
+
 
 
 
@@ -237,63 +276,117 @@ class EmployeeTrackerApp {
             return;
         }
     
-        // Request permission first
         try {
-            const position = await new Promise((resolve, reject) => {
-                navigator.geolocation.getCurrentPosition(resolve, reject, {
-                    enableHighAccuracy: true,
-                    timeout: 10000,
-                    maximumAge: 0
-                });
-            });
-    
-            // Permission granted - start watching
+            // Get initial location
+            const position = await this.getCurrentLocationWithPermission();
+            await this.saveLocation(position, false);
+            
+            // Start watchPosition for real-time
             this.watchId = navigator.geolocation.watchPosition(
                 async (pos) => {
-                    try {
-                        await this.saveLocation(pos);
-                        console.log("📍 Location saved:", pos.coords.latitude, pos.coords.longitude);
-                    } catch (error) {
-                        console.error("Failed to save location:", error);
-                        // Store offline for later sync
-                        this.saveLocationOffline(pos);
+                    // Only save if accuracy is good (< 100 meters)
+                    if (pos.coords.accuracy < 100) {
+                        await this.saveLocation(pos, false);
                     }
                 },
                 (err) => {
-                    console.error("GPS watch error:", err);
-                    alert("GPS error: " + err.message);
-                    this.watchId = null;
-                    this.render();
+                    console.error("GPS error:", err);
+                    if (err.code === 3) { // TIMEOUT
+                        this.startPeriodicFallback();
+                    }
                 },
                 {
                     enableHighAccuracy: true,
-                    maximumAge: 30000,  // 30 seconds
-                    timeout: 15000
+                    maximumAge: 30000,
+                    timeout: 10000
                 }
             );
     
-            console.log("📍 Live tracking started, watchId:", this.watchId);
-            alert("✅ Live tracking started!\n\nApp will continue tracking in background if you:\n1. Keep this tab open\n2. Install as PWA (Add to Home Screen)");
+            // Start 15-minute periodic intervals as backup
+            this.startPeriodicTracking();
             
-            // Initialize background sync if supported
-            this.initBackgroundSync();
+            alert("✅ Live tracking started!\n\nTracking every 15 minutes automatically.");
             
         } catch (error) {
-            console.error("Location permission denied:", error);
-            alert("❌ Location permission required!\n\nPlease enable location services and refresh.");
-            return;
+            console.error("Failed to start tracking:", error);
+            alert("❌ Could not start tracking: " + error.message);
         }
     }
-
+    
+    // 15-minute periodic tracking
+    startPeriodicTracking() {
+        // Clear existing interval
+        if (this.periodicInterval) {
+            clearInterval(this.periodicInterval);
+        }
+        
+        // Get location now
+        this.getPeriodicLocation();
+        
+        // Then every 15 minutes
+        this.periodicInterval = setInterval(() => {
+            this.getPeriodicLocation();
+        }, 15 * 60 * 1000); // 15 minutes
+        
+        console.log("⏰ 15-minute periodic tracking started");
+    }
+    
+    // Get location for periodic tracking
+    async getPeriodicLocation() {
+        if (!this.employee) return;
+        
+        try {
+            console.log("⏰ Getting periodic location...");
+            const position = await new Promise((resolve, reject) => {
+                navigator.geolocation.getCurrentPosition(resolve, reject, {
+                    enableHighAccuracy: false,  // Save battery
+                    maximumAge: 300000,  // 5 minutes old is OK
+                    timeout: 5000
+                });
+            });
+            
+            await this.saveLocation(position, false);
+            this.lastLocationTime = new Date();
+            console.log("✅ Periodic location saved");
+            
+        } catch (error) {
+            console.warn("Periodic location failed:", error.message);
+            // Try again in 1 minute
+            setTimeout(() => this.getPeriodicLocation(), 60000);
+        }
+    }
+    
+    // Fallback method if watchPosition fails
+    startPeriodicFallback() {
+        console.log("🔄 Falling back to periodic tracking");
+        this.startPeriodicTracking();
+    }
+    
+    // Add to stopTracking method
     stopTracking() {
         if (this.watchId) {
             navigator.geolocation.clearWatch(this.watchId);
             this.watchId = null;
-            alert("Tracking stopped");
         }
+        
+        if (this.periodicInterval) {
+            clearInterval(this.periodicInterval);
+            this.periodicInterval = null;
+        }
+        
+        // Mark as offline in Firebase
+        if (this.employee) {
+            setDoc(doc(db, "employees", this.employee.employeeId), {
+                isOnline: false,
+                lastSeen: serverTimestamp()
+            }, { merge: true });
+        }
+    
+         console.log("Tracking stopped");
+        alert("Tracking stopped");
     }
 
-
+    
 
 // Add to EmployeeTrackerApp class
 saveLocationOffline(position) {
@@ -367,31 +460,52 @@ async syncOfflineLocations() {
         });
     }
 
-    async saveLocation(position) {
+    async saveLocation(position, isInitial = false) {
         if (!this.employee) return;
-
+    
         try {
             const locationData = {
-                lat: position.coords.latitude,
-                lng: position.coords.longitude,
-                accuracy: position.coords.accuracy,
-                speed: position.coords.speed || 0,
-                timestamp: serverTimestamp(),
                 employeeId: this.employee.employeeId,
                 employeeName: this.employee.name,
-                deviceId: this.employee.deviceId
+                department: this.employee.department,
+                deviceId: this.employee.deviceId,
+                lat: position.coords.latitude,
+                lng: position.coords.longitude,
+                accuracy: Math.round(position.coords.accuracy),
+                speed: position.coords.speed || 0,
+                isInitial: isInitial,
+                source: 'mobile-app',
+                timestamp: serverTimestamp(),
+                clientTimestamp: new Date().toISOString()
             };
-
-            // Save to Firebase
+    
+            console.log("📍 Saving location:", locationData.lat, locationData.lng);
+            
+            // Save to Firebase - locations collection
             await addDoc(collection(db, "locations"), locationData);
-
-            // Update status
+            
+            // Also update lastLocation in employee document
+            await setDoc(doc(db, "employees", this.employee.employeeId), {
+                lastLocation: {
+                    lat: locationData.lat,
+                    lng: locationData.lng,
+                    timestamp: serverTimestamp()
+                },
+                lastSeen: serverTimestamp(),
+                isOnline: true
+            }, { merge: true }); // merge = update only these fields
+    
+            console.log("✅ Location saved to Firebase");
             this.showStatus(`📍 ${new Date().toLocaleTimeString()}`);
-
+            
         } catch (error) {
-            console.error("Save location error:", error);
+            console.error("❌ Save location error:", error);
+            // Save offline for later sync
+            this.saveLocationOffline(position, isInitial);
+            throw error;
         }
     }
+    
 
     async testFirebase() {
         try {

@@ -4,9 +4,73 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Employee Tracker - Mobile</title>
+     <!-- PWA Meta Tags -->
+    <meta name="application-name" content="Employee Tracker">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="EmpTracker">
+    <meta name="description" content="Employee location tracking system">
+    <meta name="theme-color" content="#4CAF50">
+    <meta name="mobile-web-app-capable" content="yes">
+    
+    <!-- iOS Icons -->
+    <link rel="apple-touch-icon" href="icon.png">
+
+
+
+
     <link rel="stylesheet" href="styles.css">
     <link rel="manifest" href="manifest.json">
     <link rel="icon" href="icon.png">
+
+
+
+<script>
+        // Force PWA installation prompt
+        window.addEventListener('beforeinstallprompt', (e) => {
+            console.log('PWA install prompt available');
+            window.deferredPrompt = e;
+            
+            // Show install button after 5 seconds
+            setTimeout(() => {
+                if (window.deferredPrompt) {
+                    this.showInstallPromotion();
+                }
+            }, 5000);
+        });
+        
+        function showInstallPromotion() {
+            const installBtn = document.createElement('button');
+            installBtn.innerHTML = '📱 Install App';
+            installBtn.style.cssText = `
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                background: #4CAF50;
+                color: white;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 20px;
+                z-index: 9999;
+                font-size: 14px;
+                cursor: pointer;
+            `;
+            installBtn.onclick = () => this.installPWA();
+            document.body.appendChild(installBtn);
+        }
+        
+        async function installPWA() {
+            if (window.deferredPrompt) {
+                window.deferredPrompt.prompt();
+                const { outcome } = await window.deferredPrompt.userChoice;
+                console.log(`User response: ${outcome}`);
+                window.deferredPrompt = null;
+            }
+        }
+    </script>
+
+
+
 </head>
 <body>
     <div id="app">
@@ -31,6 +95,12 @@ const firebaseConfig = {
         console.log("✅ Firebase initialized");
 
 </script>
+
+
+
+
+
+
 
 <script>
 // Register Service Worker for background sync
