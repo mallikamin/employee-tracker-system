@@ -1,49 +1,45 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Employee Tracker - Admin Dashboard</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
    <link rel="stylesheet" href="css/styles.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
 
 </head>
 <body>
     <div class="container">
+        <div class="dashboard-container">
         <header>
-            <h1><i class="fas fa-map-marker-alt"></i> Employee Tracker Dashboard</h1>
-            <div class="header-info">
-                <span id="currentTime"></span>
-                <button id="importBtn" class="btn"><i class="fas fa-file-import"></i> Import Data</button>
+            <h1>👨‍💼 Employee Tracker - Admin Dashboard</h1>
+            <div class="header-controls">
+                <button onclick="refreshData()">🔄 Refresh</button>
+                <button onclick="exportData()">📥 Export</button>
+                <div class="stats">
+                    <span id="totalEmployees">0 employees</span>
+                    <span id="onlineCount">0 online</span>
+                </div>
             </div>
         </header>
 
-        <div class="main-content">
-            <aside class="sidebar">
-                <div class="stats">
-                    <h3><i class="fas fa-chart-bar"></i> Overview</h3>
-                    <div class="stat-card">
-                        <div class="stat-value" id="totalEmployees">0</div>
-                        <div class="stat-label">Employees</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="activeToday">0</div>
-                        <div class="stat-label">Active Today</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="totalLocations">0</div>
-                        <div class="stat-label">Locations</div>
-                    </div>
+          <div class="dashboard-content">
+            <div class="left-panel">
+                <h2>📍 Live Locations</h2>
+                <div id="map" style="height: 500px; border-radius: 10px;"></div>
+            </div>
+            
+            <div class="right-panel">
+                <h2>👥 Employees</h2>
+                <div id="employee-list" class="employee-list">
+                    Loading employees...
                 </div>
+            </div>
+        </div>
+    </div>
 
-                <div class="employee-list">
-                    <h3><i class="fas fa-users"></i> Employees</h3>
-                    <div id="employeesContainer">
-                        <p>No employees yet</p>
-                    </div>
-                </div>
-            </aside>
 
             <main class="dashboard">
                 <div class="tabs">
@@ -142,5 +138,28 @@ const db = getFirestore(app);
 
     <script src="js/map.js"></script>
     <script type="module" src="js/app.js"></script>
+
+
+
+
+
+
+    <script>
+        function refreshData() {
+            if (window.loadEmployeeLocations) {
+                loadEmployeeLocations();
+                alert("Refreshing data...");
+            }
+        }
+        
+        async function exportData() {
+            // Export functionality here
+            alert("Export feature coming soon!");
+        }
+    </script>
+
+
+
+
 </body>
 </html>
