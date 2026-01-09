@@ -1,79 +1,71 @@
-// Map functionality for admin dashboard
+// admin-dashboard/js/map.js — Firebase Live Map Version
+
 let map = null;
 let markers = [];
 
 function initializeMap() {
-    if (!document.getElementById('map')) return;
-    
-    // Create map centered on Pakistan
-    map = L.map('map').setView([30.3753, 69.3451], 6);
-    
-    // Add OpenStreetMap tiles
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors',
-        maxZoom: 19
-    }).addTo(map);
+  const mapEl = document.getElementById("map");
+  if (!mapEl || map) return;
+
+  map = L.map("map").setView([30.3753, 69.3451], 6);
+
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: "© OpenStreetMap contributors",
+    maxZoom: 19
+  }).addTo(map);
 }
 
 function updateMapData(employees, locations) {
-    if (!map) initializeMap();
-    if (!map) return;
-    
-    // Clear existing markers
-    markers.forEach(marker => marker.remove());
-    markers = [];
-    
-    if (locations.length === 0) return;
-    
-    // Group locations by employee
-    const employeeLocations = {};
-    locations.forEach(loc => {
-        if (!employeeLocations[loc.employeeId]) {
-            employeeLocations[loc.employeeId] = [];
-        }
-        employeeLocations[loc.employeeId].push(loc);
-    });
-    
-    // Add markers for each employee
-    Object.entries(employeeLocations).forEach(([empId, empLocations]) => {
-        const lastLocation = empLocations[0];
-        const employee = employees.find(e => e.employeeId === empId);
-        
-        if (!lastLocation || !lastLocation.latitude || !lastLocation.longitude) return;
-        
-        // Create marker with custom icon
-        const marker = L.marker([lastLocation.latitude, lastLocation.longitude], {
-            title: employee ? employee.name : empId
-        }).addTo(map);
-        
-        // Create popup content
-        const popupContent = `
-            <div style="padding: 10px; min-width: 200px;">
-                <strong>${employee ? employee.name : empId}</strong><br>
-                ${employee ? employee.department || 'No department' : ''}<br>
-                <hr style="margin: 8px 0;">
-                <strong>Last Seen:</strong> ${new Date(lastLocation.timestamp).toLocaleTimeString()}<br>
-                <strong>Coordinates:</strong> ${lastLocation.latitude.toFixed(6)}, ${lastLocation.longitude.toFixed(6)}<br>
-                ${lastLocation.accuracy ? `<strong>Accuracy:</strong> ${Math.round(lastLocation.accuracy)}m` : ''}
-            </div>
-        `;
-        
-        marker.bindPopup(popupContent);
-        markers.push(marker);
-    });
-    
-    // Fit map to show all markers
-    if (markers.length > 0) {
-        const group = L.featureGroup(markers);
-        map.fitBounds(group.getBounds().pad(0.1));
-    }
+  if (!map) initializeMap();
+  if (!map || !locations?.length) return;
+
+  // Clear old markers
+  markers.forEach(m => m.remove());
+  markers = [];
+
+  // Group by employee
+  const byEmployee = {};
+  locations.forEach(loc => {
+    if (!loc.lat || !loc.lng) return;
+    if (!byEmployee[loc.employeeId]) byEmployee[loc.employeeId] = [];
+    byEmployee[loc.employeeId].push(loc);
+  });
+
+  Object.entries(byEmployee).forEach(([employeeId, logs]) => {
+    const last = logs[0];
+    const emp = employees.find(e => e.employeeId === employeeId);
+
+    if (!last) return;
+
+    const time = last.timestamp?.seconds
+      ? new Date(last.timestamp.seconds * 1000).toLocaleTimeString()
+      : "Unknown";
+
+    const marker = L.marker([last.lat, last.lng], {
+      title: emp ? emp.name : employeeId
+    }).addTo(map);
+
+    marker.bindPopup(`
+      <div style="min-width:200px">
+        <strong>${emp?.name || employeeId}</strong><br>
+        ${emp?.department || ""}<br>
+        <hr>
+        <strong>Last Seen:</strong> ${time}<br>
+        <strong>Coords:</strong> ${last.lat.toFixed(5)}, ${last.lng.toFixed(5)}<br>
+        ${last.accuracy ? `<strong>Accuracy:</strong> ${Math.round(last.accuracy)}m` : ""}
+      </div>
+    `);
+
+    markers.push(marker);
+  });
+
+  if (markers.length) {
+    const group = L.featureGroup(markers);
+    map.fitBounds(group.getBounds().pad(0.15));
+  }
 }
 
-// Initialize map when page loads
-document.addEventListener('DOMContentLoaded', () => {
-    initializeMap();
-    
-    // Expose updateMapData to admin dashboard
-    window.updateMapData = updateMapData;
-    window.map = map;
-});
+// Make available globally
+window.updateMapData = updateMapData;
+
+document.addEventListener("DOMContentLoaded", initializeMap);

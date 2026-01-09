@@ -309,3 +309,24 @@ class EmployeeTrackerApp {
 document.addEventListener('DOMContentLoaded', () => {
     window.app = new EmployeeTrackerApp();
 });
+
+
+import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+const db = getFirestore();
+
+async function firebaseTest() {
+  try {
+    await addDoc(collection(db, "test_logs"), {
+      message: "Firebase connection successful",
+      time: serverTimestamp()
+    });
+    console.log("✅ Firebase WRITE successful");
+    alert("Firebase is working!");
+  } catch (e) {
+    console.error("❌ Firebase WRITE failed:", e);
+    alert("Firebase failed. Check console.");
+  }
+}
+
+firebaseTest();
