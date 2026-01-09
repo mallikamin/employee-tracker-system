@@ -26,20 +26,62 @@
 
 
 <script>
-        // Force PWA installation prompt
+let deferredPrompt;
+    
+
+// Force PWA installation prompt
         window.addEventListener('beforeinstallprompt', (e) => {
             console.log('PWA install prompt available');
-            window.deferredPrompt = e;
+                e.preventDefault();
+                   deferredPrompt = e;
+
+            
             
             // Show install button after 5 seconds
-            setTimeout(() => {
-                if (window.deferredPrompt) {
-                    this.showInstallPromotion();
-                }
-            }, 5000);
-        });
+            setTimeout(showInstallButton, 5000);
+});
         
-        function showInstallPromotion() {
+
+function showInstallButton() {
+    if (!deferredPrompt) return;
+    
+    // Create install button
+    const installBtn = document.createElement('button');
+    installBtn.id = 'installPWA';
+    installBtn.innerHTML = '📱 Install App';
+    installBtn.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: #4CAF50;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 25px;
+        z-index: 9999;
+        font-size: 16px;
+        cursor: pointer;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        animation: pulse 2s infinite;
+    `;
+    
+    // Add pulse animation
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+    `;
+    document.head.appendChild(style);
+    
+    installBtn.onclick = installPWA;
+    document.body.appendChild(installBtn);
+}
+
+   
+function showInstallPromotion() {
             const installBtn = document.createElement('button');
             installBtn.innerHTML = '📱 Install App';
             installBtn.style.cssText = `
@@ -60,13 +102,42 @@
         }
         
         async function installPWA() {
-            if (window.deferredPrompt) {
-                window.deferredPrompt.prompt();
-                const { outcome } = await window.deferredPrompt.userChoice;
-                console.log(`User response: ${outcome}`);
-                window.deferredPrompt = null;
-            }
-        }
+    if (!deferredPrompt) {
+        alert('Already installed or not supported');
+        return;
+    }
+    
+    // Show the install prompt
+    deferredPrompt.prompt();
+    
+    // Wait for the user to respond to the prompt
+    const { outcome } = await deferredPrompt.userChoice;
+    console.log(`User response to install prompt: ${outcome}`);
+    
+    // Clear the saved prompt since it can't be used again
+    deferredPrompt = null;
+    
+    // Remove the install button
+    const installBtn = document.getElementById('installPWA');
+    if (installBtn) installBtn.remove();
+    
+    if (outcome === 'accepted') {
+        alert('App installed successfully! It will now work in background.');
+    }
+}
+
+// Check if already installed
+window.addEventListener('appinstalled', (evt) => {
+    console.log('App was installed');
+    localStorage.setItem('appInstalled', 'true');
+});
+
+// Show install button on page load if not installed
+window.addEventListener('load', () => {
+    if (!localStorage.getItem('appInstalled') && 'beforeinstallprompt' in window) {
+        setTimeout(showInstallButton, 3000);
+    }
+});
     </script>
 
 

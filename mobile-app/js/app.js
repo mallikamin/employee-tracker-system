@@ -30,10 +30,68 @@ class EmployeeTrackerApp {
         this.employee = null;
         this.watchId = null;
         this.periodicInterval = null;
-        this.lastLocationTime = null;
-        this.todayCount = 0;
+        this.backgroundInterval = null; // For background checks
         this.init();
     }
+
+
+
+    async getBackgroundLocation() {
+        if (!this.employee) return;
+        
+        try {
+            console.log("🔄 Getting background location...");
+            const position = await new Promise((resolve, reject) => {
+                navigator.geolocation.getCurrentPosition(resolve, reject, {
+                    enableHighAccuracy: false,
+                    maximumAge: 300000, // 5 minutes old is OK
+                    timeout: 10000
+                });
+            });
+            
+            await this.saveLocation(position, false);
+            console.log("✅ Background location saved");
+            
+            // Notify service worker
+            if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+                navigator.serviceWorker.controller.postMessage({
+                    type: 'LOCATION_SAVED',
+                    timestamp: new Date().toISOString()
+                });
+            }
+            
+        } catch (error) {
+            console.warn("Background location failed:", error.message);
+        }
+    }
+    
+    // Listen for messages from Service Worker
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.addEventListener('message', event => {
+            if (event.data.type === 'GET_BACKGROUND_LOCATION') {
+                console.log("Service worker requested location");
+                this.getBackgroundLocation();
+            }
+        });
+    }
+    
+    // Start background intervals when tracking starts
+    startBackgroundMonitoring() {
+        // Check every 5 minutes if we're still active
+        this.backgroundInterval = setInterval(() => {
+            if (document.hidden) { // Tab is in background
+                console.log("📱 App in background, checking tracking...");
+                this.getBackgroundLocation();
+            }
+        }, 5 * 60 * 1000); // 5 minutes
+    }
+    
+
+
+
+
+
+
 
     async init() {
         // Hide loader

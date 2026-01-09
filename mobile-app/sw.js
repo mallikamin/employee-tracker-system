@@ -1,100 +1,83 @@
-// Service Worker for Employee Tracker
-const CACHE_NAME = 'employee-tracker-v2';
-const OFFLINE_QUEUE = 'offline-locations';
+// Advanced Service Worker for Background Tracking
+const CACHE_NAME = 'tracker-v3';
+const LOCATION_QUEUE = 'location_queue';
 
 self.addEventListener('install', (event) => {
-    console.log('[Service Worker] Installing...');
+    console.log('[SW] Installing...');
+    self.skipWaiting(); // Activate immediately
     event.waitUntil(
-        caches.open(CACHE_NAME).then((cache) => {
+        caches.open(CACHE_NAME).then(cache => {
             return cache.addAll([
                 './',
                 './index.html',
                 './styles.css',
                 './js/app.js',
-                './icon.png',
-                './manifest.json'
+                './icon.png'
             ]);
         })
     );
 });
 
 self.addEventListener('activate', (event) => {
-    console.log('[Service Worker] Activated');
-    // Clean up old caches
-    event.waitUntil(
-        caches.keys().then((cacheNames) => {
-            return Promise.all(
-                cacheNames.map((cacheName) => {
-                    if (cacheName !== CACHE_NAME) {
-                        console.log('Deleting old cache:', cacheName);
-                        return caches.delete(cacheName);
-                    }
-                })
-            );
-        })
-    );
+    console.log('[SW] Activated');
+    event.waitUntil(clients.claim()); // Take control immediately
 });
 
-self.addEventListener('fetch', (event) => {
-    // For same-origin requests, try cache first
-    if (event.request.url.startsWith(self.location.origin)) {
-        event.respondWith(
-            caches.match(event.request).then((cachedResponse) => {
-                return cachedResponse || fetch(event.request);
-            })
-        );
-    }
-});
-
-// Background Sync for Firebase data
+// Handle background sync
 self.addEventListener('sync', (event) => {
     if (event.tag === 'sync-locations') {
-        console.log('[Service Worker] Background sync triggered');
-        event.waitUntil(syncOfflineData());
+        console.log('[SW] Background sync triggered');
+        event.waitUntil(syncLocations());
     }
 });
 
-async function syncOfflineData() {
-    // Get clients and notify them to sync
+// Periodic background sync (15 minutes)
+self.addEventListener('periodicsync', (event) => {
+    if (event.tag === 'periodic-location') {
+        console.log('[SW] Periodic sync at:', new Date().toLocaleTimeString());
+        event.waitUntil(getBackgroundLocation());
+    }
+});
+
+async function getBackgroundLocation() {
+    console.log('[SW] Getting background location...');
+    
+    // Get all clients (app tabs)
     const clients = await self.clients.matchAll();
+    
+    // Ask main app to get location
     clients.forEach(client => {
         client.postMessage({
-            type: 'SYNC_OFFLINE_DATA',
+            type: 'GET_BACKGROUND_LOCATION',
             timestamp: new Date().toISOString()
         });
     });
-}
-
-// Handle messages from the main app
-self.addEventListener('message', (event) => {
-    if (event.data && event.data.type === 'SAVE_OFFLINE_LOCATION') {
-        saveToQueue(event.data.location);
-    }
-});
-
-// Store offline data in IndexedDB or return a fallback
-async function saveToQueue(locationData) {
-    // Simple localStorage fallback since IndexedDB is complex
-    console.log('[Service Worker] Would save offline:', locationData);
+    
     return Promise.resolve();
 }
 
-// Periodic Background Sync (if supported)
-if ('periodicSync' in self.registration) {
-    self.addEventListener('periodicsync', (event) => {
-        if (event.tag === 'location-update') {
-            console.log('[Service Worker] Periodic sync');
-            event.waitUntil(notifyAppForUpdate());
-        }
-    });
+async function syncLocations() {
+    // Get queued locations from IndexedDB
+    const locations = await getQueuedLocations();
+    
+    if (locations.length > 0) {
+        console.log(`[SW] Syncing ${locations.length} queued locations`);
+        // In real app, you'd send to server here
+    }
+    
+    return Promise.resolve();
 }
 
-async function notifyAppForUpdate() {
-    const clients = await self.clients.matchAll();
-    clients.forEach(client => {
-        client.postMessage({
-            type: 'PERIODIC_UPDATE',
-            time: new Date().toISOString()
-        });
-    });
-}// Service Worker File
+// Simple IndexedDB for queued locations
+async function getQueuedLocations() {
+    // Simplified - in production use IndexedDB
+    return [];
+}
+
+// Handle messages from main app
+self.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'QUEUE_LOCATION') {
+        console.log('[SW] Received location to queue:', event.data.location);
+        // Store for later sync
+    }
+});
