@@ -4,261 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Employee Tracker - Mobile</title>
-     <!-- PWA Meta Tags -->
-    <meta name="application-name" content="Employee Tracker">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="EmpTracker">
-    <meta name="description" content="Employee location tracking system">
-    <meta name="theme-color" content="#4CAF50">
-    <meta name="mobile-web-app-capable" content="yes">
-    
-    <!-- iOS Icons -->
-    <link rel="apple-touch-icon" href="icon.png">
-
-
-
-
     <link rel="stylesheet" href="styles.css">
     <link rel="manifest" href="manifest.json">
     <link rel="icon" href="icon.png">
-
-
-
-<script>
-let deferredPrompt = null;
-    
-
-// Force PWA installation prompt
-        window.addEventListener('beforeinstallprompt', (e) => {
-            console.log('PWA install prompt available');
-                e.preventDefault();
-                   deferredPrompt = e;
-
-            
-            
-            // Show install button after 5 seconds
-            setTimeout(showInstallPromotion, 3000);
-});
-
-function showInstallPromotion() {
-    // Remove existing button if any
-    const existingBtn = document.getElementById('installPWA');
-    if (existingBtn) existingBtn.remove();
-    
-    // Only show if not already installed
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
-                         window.navigator.standalone;
-    
-    if (isStandalone) {
-        console.log('Already installed as PWA');
-        return;
-    }
-    
-    const installBtn = document.createElement('button');
-    installBtn.id = 'installPWA';
-    installBtn.innerHTML = '📱 Install App';
-    installBtn.style.cssText = `
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        background: linear-gradient(135deg, #4CAF50, #2E7D32);
-        color: white;
-        border: none;
-        padding: 15px 25px;
-        border-radius: 30px;
-        z-index: 10000;
-        font-size: 16px;
-        font-weight: bold;
-        cursor: pointer;
-        box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        animation: slideIn 0.5s ease-out;
-    `;
-    
-    // Add icon
-    const icon = document.createElement('span');
-    icon.innerHTML = '⬇️';
-    installBtn.prepend(icon);
-    
-    // Add styles
-    const style = document.createElement('style');
-    style.textContent = `
-        @keyframes slideIn {
-            from { transform: translateX(100px); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
-        }
-        #installPWA:hover {
-            animation: pulse 1s infinite;
-            background: linear-gradient(135deg, #45a049, #1B5E20);
-        }
-    `;
-    document.head.appendChild(style);
-    
-    installBtn.onclick = installPWA;
-    document.body.appendChild(installBtn);
-    
-    // Also add to app UI for logged-in users
-    setTimeout(() => {
-        if (window.app && window.app.employee) {
-            window.app.addInstallButtonToUI();
-        }
-    }, 1000);
-}
-
-        
-
-function showInstallInstructions() {
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    const isAndroid = /Android/.test(navigator.userAgent);
-    
-    let instructions = '';
-    
-    if (isIOS) {
-        instructions = `
-            <h3>📱 Install on iPhone/iPad:</h3>
-            <ol>
-                <li>Tap the <strong>Share button</strong> (📤) at bottom</li>
-                <li>Scroll down and tap <strong>"Add to Home Screen"</strong></li>
-                <li>Tap <strong>"Add"</strong> in top right</li>
-                <li>Open from Home Screen icon</li>
-            </ol>
-        `;
-    } else if (isAndroid) {
-        instructions = `
-            <h3>📱 Install on Android:</h3>
-            <ol>
-                <li>Tap <strong>Chrome menu</strong> (3 dots ⋮)</li>
-                <li>Tap <strong>"Install app"</strong> or "Add to Home screen"</li>
-                <li>Tap <strong>"Install"</strong></li>
-                <li>Open from Home Screen icon</li>
-            </ol>
-        `;
-    } else {
-        instructions = `
-            <h3>💻 Install on Desktop:</h3>
-            <ol>
-                <li>Look for <strong>"Install"</strong> icon in address bar</li>
-                <li>Or click Chrome menu (3 dots ⋮) → "Install Employee Tracker"</li>
-            </ol>
-        `;
-    }
-    
-    alert(instructions);
-}
-
-
-
-
-
-function showInstallButton() {
-    if (!deferredPrompt) return;
-    
-    // Create install button
-    const installBtn = document.createElement('button');
-    installBtn.id = 'installPWA';
-    installBtn.innerHTML = '📱 Install App';
-    installBtn.style.cssText = `
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        background: #4CAF50;
-        color: white;
-        border: none;
-        padding: 12px 24px;
-        border-radius: 25px;
-        z-index: 9999;
-        font-size: 16px;
-        cursor: pointer;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-        animation: pulse 2s infinite;
-    `;
-    
-    // Add pulse animation
-    const style = document.createElement('style');
-    style.textContent = `
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
-        }
-    `;
-    document.head.appendChild(style);
-    
-    installBtn.onclick = installPWA;
-    document.body.appendChild(installBtn);
-}
-
-   
-function showInstallPromotion() {
-            const installBtn = document.createElement('button');
-            installBtn.innerHTML = '📱 Install App';
-            installBtn.style.cssText = `
-                position: fixed;
-                bottom: 20px;
-                right: 20px;
-                background: #4CAF50;
-                color: white;
-                border: none;
-                padding: 10px 20px;
-                border-radius: 20px;
-                z-index: 9999;
-                font-size: 14px;
-                cursor: pointer;
-            `;
-            installBtn.onclick = () => this.installPWA();
-            document.body.appendChild(installBtn);
-        }
-        
-        async function installPWA() {
-    if (!deferredPrompt) {
-
-        showInstallInstructions();
-        return;
-    }
-    
-    // Show the install prompt
-    deferredPrompt.prompt();
-    
-    // Wait for the user to respond to the prompt
-    const { outcome } = await deferredPrompt.userChoice;
-    console.log(`User response to install prompt: ${outcome}`);
-    
-    // Clear the saved prompt since it can't be used again
-    deferredPrompt = null;
-    
-    // Remove the install button
-    const installBtn = document.getElementById('installPWA');
-    if (installBtn) installBtn.remove();
-    
-if (outcome === 'accepted') {
-        showSuccessMessage();
-    }
-}
-
-// Check if already installed
-window.addEventListener('appinstalled', (evt) => {
-    console.log('App was installed');
-    localStorage.setItem('appInstalled', 'true');
-});
-
-// Show install button on page load if not installed
-window.addEventListener('load', () => {
-    if (!localStorage.getItem('appInstalled') && 'beforeinstallprompt' in window) {
-        setTimeout(showInstallButton, 3000);
-    }
-});
-    </script>
-
-
-
+    <style>
+        /* Add some basic styles */
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f5f5f5; }
+        .loader { text-align: center; padding: 50px; }
+        .spinner { border: 5px solid #f3f3f3; border-top: 5px solid #4CAF50; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 0 auto 20px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
 </head>
 <body>
     <div id="app">
@@ -267,141 +22,493 @@ window.addEventListener('load', () => {
             <p>Loading Employee Tracker...</p>
         </div>
     </div>
-    <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyCZa6IhBQRxr11Uxi-s2fg3o5sZ0Sx0Kvs",
-  authDomain: "tracker-f78a7.firebaseapp.com",
-  projectId: "tracker-f78a7",
-  storageBucket: "tracker-f78a7.appspot.com",
-  messagingSenderId: "1011575319382",
-  appId: "1:1011575319382:web:b75329c5490d8adbedc4f7"
-};
-
- window.firebaseApp = initializeApp(firebaseConfig);
-        console.log("✅ Firebase initialized");
-
-</script>
-
-
-
-
-
-
-
-<script>
-// Register Service Worker with CORRECT path
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        // Use current page's directory for service worker
-        const currentPath = window.location.pathname;
-        const basePath = currentPath.substring(0, currentPath.lastIndexOf('/') + 1);
-        const swPath = basePath + 'sw.js';
-        
-        console.log('Registering Service Worker at:', swPath);
-        
-        navigator.serviceWorker.register(swPath).then((registration) => {
-            console.log('✅ ServiceWorker registered:', registration.scope);
-            
-            // Request background sync
-            if ('sync' in registration) {
-                registration.sync.register('sync-locations')
-                    .then(() => console.log('Background sync registered'))
-                    .catch(err => console.log('Sync registration failed:', err));
-            }
-            
-            // Check for updates every hour
-            setInterval(() => {
-                registration.update();
-            }, 60 * 60 * 1000);
-            
-        }).catch((err) => {
-            console.log('❌ ServiceWorker failed:', err);
-            
-            // Try fallback path
-            const fallbackPath = './sw.js';
-            if (swPath !== fallbackPath) {
-                navigator.serviceWorker.register(fallbackPath)
-                    .then(reg => {
-                        console.log('✅ Fallback SW registered:', reg.scope);
-                        // Register sync on fallback too
-                        if ('sync' in reg) {
-                            reg.sync.register('sync-locations');
+    <!-- Service Worker Registration -->
+    <script>
+        // Service Worker with correct GitHub Pages path
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                // For GitHub Pages, the path is /employee-tracker-system/mobile-app/sw.js
+                const swPath = '/employee-tracker-system/mobile-app/sw.js';
+                
+                console.log('Registering Service Worker at:', swPath);
+                
+                navigator.serviceWorker.register(swPath)
+                    .then(function(registration) {
+                        console.log('✅ ServiceWorker registered:', registration.scope);
+                        
+                        // Register background sync
+                        if ('sync' in registration) {
+                            registration.sync.register('sync-locations')
+                                .then(() => console.log('Background sync registered'))
+                                .catch(err => console.log('Sync not supported:', err));
                         }
                     })
-                    .catch(e => console.log('❌ Both SW attempts failed:', e));
-            }
-        });
-    });
-    
-    // Listen for messages from Service Worker - KEEP THIS!
-    navigator.serviceWorker.addEventListener('message', event => {
-        console.log('Message from SW:', event.data);
-        
-        if (event.data.type === 'SYNC_OFFLINE_DATA') {
-            console.log('SW requested offline data sync');
-            if (window.app && window.app.syncOfflineLocations) {
-                window.app.syncOfflineLocations();
-            }
-        }
-        
-        if (event.data.type === 'GET_BACKGROUND_LOCATION') {
-            console.log('SW requested background location');
-            if (window.app && window.app.getBackgroundLocation) {
-                window.app.getBackgroundLocation();
-            }
-        }
-        
-        if (event.data.type === 'PONG') {
-            console.log('Service Worker is alive:', event.data.time);
-        }
-        
-        // Test connection to SW
-        if (event.data.type === 'TEST') {
-            console.log('SW test successful');
-        }
-    });
-    
-    // Test Service Worker connection
-    setTimeout(() => {
-        if (navigator.serviceWorker.controller) {
-            navigator.serviceWorker.controller.postMessage({
-                type: 'PING',
-                message: 'Hello from main app'
+                    .catch(function(err) {
+                        console.log('❌ ServiceWorker registration failed:', err);
+                        
+                        // Try relative path as fallback
+                        navigator.serviceWorker.register('./sw.js')
+                            .then(reg => console.log('✅ Fallback SW registered:', reg.scope))
+                            .catch(e => console.log('❌ Both SW attempts failed'));
+                    });
+            });
+            
+            // Listen for messages from Service Worker
+            navigator.serviceWorker.addEventListener('message', function(event) {
+                console.log('Message from SW:', event.data);
+                
+                if (event.data.type === 'SYNC_OFFLINE_DATA') {
+                    if (window.app && window.app.syncOfflineLocations) {
+                        window.app.syncOfflineLocations();
+                    }
+                }
+                
+                if (event.data.type === 'GET_BACKGROUND_LOCATION') {
+                    if (window.app && window.app.getBackgroundLocation) {
+                        window.app.getBackgroundLocation();
+                    }
+                }
             });
         }
-    }, 3000);
-}
+    </script>
 
+    <!-- PWA Installation Script -->
+    <script>
+        // PWA Installation
+        let deferredPrompt = null;
+        
+        window.addEventListener('beforeinstallprompt', function(e) {
+            console.log('PWA install prompt available');
+            e.preventDefault();
+            deferredPrompt = e;
+            
+            // Show install button after 3 seconds
+            setTimeout(showInstallButton, 3000);
+        });
+        
+        function showInstallButton() {
+            // Remove existing button
+            const existingBtn = document.getElementById('installPWA');
+            if (existingBtn) existingBtn.remove();
+            
+            // Check if already installed
+            if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
+                console.log('Already installed as PWA');
+                return;
+            }
+            
+            // Create install button
+            const installBtn = document.createElement('button');
+            installBtn.id = 'installPWA';
+            installBtn.innerHTML = '📱 Install App';
+            installBtn.style.cssText = `
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                background: #4CAF50;
+                color: white;
+                border: none;
+                padding: 12px 20px;
+                border-radius: 25px;
+                z-index: 9999;
+                font-size: 16px;
+                cursor: pointer;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            `;
+            
+            installBtn.onclick = installPWA;
+            document.body.appendChild(installBtn);
+        }
+        
+        function installPWA() {
+            if (!deferredPrompt) {
+                // Show installation instructions
+                showInstallInstructions();
+                return;
+            }
+            
+            deferredPrompt.prompt();
+            
+            deferredPrompt.userChoice.then(function(choiceResult) {
+                console.log('User install choice:', choiceResult.outcome);
+                deferredPrompt = null;
+                
+                // Remove button
+                const installBtn = document.getElementById('installPWA');
+                if (installBtn) installBtn.remove();
+                
+                if (choiceResult.outcome === 'accepted') {
+                    alert('🎉 App installed! You can now use it offline.');
+                }
+            });
+        }
+        
+        function showInstallInstructions() {
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+            const isAndroid = /Android/.test(navigator.userAgent);
+            
+            let instructions = '';
+            
+            if (isIOS) {
+                instructions = 'For iOS: Tap Share button → "Add to Home Screen" → "Add"';
+            } else if (isAndroid) {
+                instructions = 'For Android: Tap Chrome menu (3 dots) → "Install app" or "Add to Home screen"';
+            } else {
+                instructions = 'For Desktop: Look for "Install" icon in address bar or Chrome menu';
+            }
+            
+            alert(instructions);
+        }
+        
+        // Show install button on load
+        window.addEventListener('load', function() {
+            setTimeout(showInstallButton, 2000);
+        });
+    </script>
 
+    <!-- Firebase and Main App -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import {
+            getFirestore,
+            collection,
+            doc,
+            setDoc,
+            addDoc,
+            serverTimestamp
+        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+        // Firebase config
+        const firebaseConfig = {
+            apiKey: "AIzaSyCZa6IhBQRxr11Uxi-s2fg3o5sZ0Sx0Kvs",
+            authDomain: "tracker-f78a7.firebaseapp.com",
+            projectId: "tracker-f78a7",
+            storageBucket: "tracker-f78a7.appspot.com",
+            messagingSenderId: "1011575319382",
+            appId: "1:1011575319382:web:b75329c5490d8adbedc4f7"
+        };
 
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        console.log("✅ Firebase initialized");
 
+        class EmployeeTrackerApp {
+            constructor() {
+                this.employee = null;
+                this.watchId = null;
+                this.periodicInterval = null;
+                this.init();
+            }
 
-function showSuccessMessage() {
-    alert('🎉 App installed successfully!\n\nNow you can:\n• Close browser - app still works\n• Get background location updates\n• Open from Home Screen\n\nStart tracking to continue!');
-}
+            async init() {
+                // Hide loader
+                const loader = document.querySelector('.loader');
+                if (loader) loader.style.display = 'none';
+                
+                this.loadEmployee();
+                this.renderUI();
+                this.setupEventListeners();
+            }
 
-if (window.matchMedia('(display-mode: standalone)').matches) {
-    console.log('Running as installed PWA');
-    localStorage.setItem('isPWA', 'true');
-}
+            loadEmployee() {
+                const saved = localStorage.getItem("employee_profile");
+                if (saved) {
+                    this.employee = JSON.parse(saved);
+                    console.log("Loaded employee:", this.employee);
+                }
+            }
 
-// Show install button on load if needed
-window.addEventListener('load', () => {
-    setTimeout(showInstallPromotion, 2000);
-});
+            renderUI() {
+                const app = document.getElementById('app');
+                
+                if (!this.employee) {
+                    app.innerHTML = `
+                        <div style="max-width:400px; margin:0 auto; padding:20px;">
+                            <h1>👨‍💼 Employee Tracker</h1>
+                            <p>Register to start tracking</p>
+                            
+                            <div style="margin:20px 0;">
+                                <label style="display:block; margin-bottom:5px;">Employee ID</label>
+                                <input type="text" id="empId" placeholder="EMP001" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:5px;">
+                            </div>
+                            
+                            <div style="margin:20px 0;">
+                                <label style="display:block; margin-bottom:5px;">Full Name</label>
+                                <input type="text" id="empName" placeholder="John Smith" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:5px;">
+                            </div>
+                            
+                            <div style="margin:20px 0;">
+                                <label style="display:block; margin-bottom:5px;">Department</label>
+                                <input type="text" id="empDept" placeholder="Sales" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:5px;">
+                            </div>
+                            
+                            <button id="registerBtn" style="width:100%; padding:12px; background:#4CAF50; color:white; border:none; border-radius:5px; font-size:16px; cursor:pointer;">
+                                Register & Start Tracking
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    app.innerHTML = `
+                        <div style="max-width:400px; margin:0 auto; padding:20px;">
+                            <h1>👋 ${this.employee.name}</h1>
+                            <p style="color:#666;">${this.employee.employeeId} | ${this.employee.department}</p>
+                            
+                            <div style="background:#f8f9fa; padding:20px; border-radius:10px; margin:20px 0;">
+                                <h3>Status: ${this.watchId ? 'ACTIVE' : 'INACTIVE'}</h3>
+                                <div style="margin:20px 0;">
+                                    <button id="toggleBtn" style="width:100%; padding:12px; background:${this.watchId ? '#f44336' : '#4CAF50'}; color:white; border:none; border-radius:5px; font-size:16px; cursor:pointer;">
+                                        ${this.watchId ? '⏸️ Stop Tracking' : '▶️ Start Tracking'}
+                                    </button>
+                                </div>
+                                <div>
+                                    <button id="manualBtn" style="width:100%; padding:12px; background:#2196F3; color:white; border:none; border-radius:5px; font-size:16px; cursor:pointer; margin-top:10px;">
+                                        📍 Get Location Now
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div style="margin-top:30px;">
+                                <button id="logoutBtn" style="width:100%; padding:12px; background:#666; color:white; border:none; border-radius:5px; font-size:16px; cursor:pointer;">
+                                    🚪 Logout
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
 
+            setupEventListeners() {
+                setTimeout(() => {
+                    const registerBtn = document.getElementById('registerBtn');
+                    if (registerBtn) {
+                        registerBtn.addEventListener('click', () => this.register());
+                    }
+                    
+                    const toggleBtn = document.getElementById('toggleBtn');
+                    if (toggleBtn) {
+                        toggleBtn.addEventListener('click', () => this.toggleTracking());
+                    }
+                    
+                    const manualBtn = document.getElementById('manualBtn');
+                    if (manualBtn) {
+                        manualBtn.addEventListener('click', () => this.getManualLocation());
+                    }
+                    
+                    const logoutBtn = document.getElementById('logoutBtn');
+                    if (logoutBtn) {
+                        logoutBtn.addEventListener('click', () => this.logout());
+                    }
+                }, 100);
+            }
 
+            async register() {
+                const empId = document.getElementById("empId").value.trim();
+                const name = document.getElementById("empName").value.trim();
+                const dept = document.getElementById("empDept").value.trim() || "General";
 
+                if (!empId || !name) {
+                    alert("Employee ID and Name required");
+                    return;
+                }
 
+                try {
+                    // Get location first
+                    const position = await this.getCurrentLocation();
+                    
+                    this.employee = {
+                        employeeId: empId,
+                        name: name,
+                        department: dept,
+                        deviceId: 'DEV-' + Math.random().toString(36).substr(2, 9),
+                        registeredAt: new Date().toISOString()
+                    };
 
-</script>
+                    // Save to Firebase
+                    await setDoc(doc(db, "employees", empId), {
+                        ...this.employee,
+                        registeredAt: serverTimestamp(),
+                        isOnline: true
+                    });
 
+                    // Save location
+                    await this.saveLocation(position, true);
+                    
+                    // Save locally
+                    localStorage.setItem("employee_profile", JSON.stringify(this.employee));
+                    
+                    // Start tracking
+                    this.startTracking();
 
-    <script type="module" src="js/app.js"></script>
+                    alert("✅ Registered successfully!");
+                    this.renderUI();
+                    
+                } catch (error) {
+                    console.error("Registration error:", error);
+                    alert("❌ Registration failed: " + error.message);
+                }
+            }
 
+            async toggleTracking() {
+                if (this.watchId) {
+                    this.stopTracking();
+                } else {
+                    await this.startTracking();
+                }
+                this.renderUI();
+            }
 
+            async startTracking() {
+                if (!navigator.geolocation) {
+                    alert("Geolocation not supported");
+                    return;
+                }
+
+                try {
+                    // Get initial location
+                    const position = await this.getCurrentLocation();
+                    await this.saveLocation(position, false);
+                    
+                    // Start watching
+                    this.watchId = navigator.geolocation.watchPosition(
+                        async (pos) => {
+                            await this.saveLocation(pos, false);
+                        },
+                        (err) => {
+                            console.error("GPS error:", err);
+                        },
+                        {
+                            enableHighAccuracy: true,
+                            maximumAge: 30000,
+                            timeout: 10000
+                        }
+                    );
+
+                    // Start 15-minute backup
+                    this.startPeriodicTracking();
+                    
+                    alert("✅ Tracking started! Updates every 15 minutes.");
+                    
+                } catch (error) {
+                    console.error("Failed to start tracking:", error);
+                    alert("❌ Could not start tracking: " + error.message);
+                }
+            }
+
+            stopTracking() {
+                if (this.watchId) {
+                    navigator.geolocation.clearWatch(this.watchId);
+                    this.watchId = null;
+                }
+                
+                if (this.periodicInterval) {
+                    clearInterval(this.periodicInterval);
+                    this.periodicInterval = null;
+                }
+                
+                alert("Tracking stopped");
+            }
+
+            startPeriodicTracking() {
+                // Clear existing interval
+                if (this.periodicInterval) {
+                    clearInterval(this.periodicInterval);
+                }
+                
+                // Get location now
+                this.getPeriodicLocation();
+                
+                // Then every 15 minutes
+                this.periodicInterval = setInterval(() => {
+                    this.getPeriodicLocation();
+                }, 15 * 60 * 1000);
+            }
+
+            async getPeriodicLocation() {
+                if (!this.employee) return;
+                
+                try {
+                    const position = await new Promise((resolve, reject) => {
+                        navigator.geolocation.getCurrentPosition(resolve, reject, {
+                            enableHighAccuracy: false,
+                            maximumAge: 300000,
+                            timeout: 10000
+                        });
+                    });
+                    
+                    await this.saveLocation(position, false);
+                    console.log("✅ Periodic location saved");
+                    
+                } catch (error) {
+                    console.warn("Periodic location failed:", error.message);
+                }
+            }
+
+            getCurrentLocation() {
+                return new Promise((resolve, reject) => {
+                    navigator.geolocation.getCurrentPosition(resolve, reject, {
+                        enableHighAccuracy: true,
+                        timeout: 15000,
+                        maximumAge: 0
+                    });
+                });
+            }
+
+            async getManualLocation() {
+                try {
+                    const position = await this.getCurrentLocation();
+                    await this.saveLocation(position, false);
+                    alert("✅ Location saved!");
+                } catch (error) {
+                    alert("❌ Failed to get location: " + error.message);
+                }
+            }
+
+            async saveLocation(position, isInitial = false) {
+                if (!this.employee) return;
+
+                try {
+                    const locationData = {
+                        employeeId: this.employee.employeeId,
+                        employeeName: this.employee.name,
+                        department: this.employee.department,
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude,
+                        accuracy: Math.round(position.coords.accuracy),
+                        isInitial: isInitial,
+                        source: 'mobile-app',
+                        timestamp: serverTimestamp(),
+                        clientTimestamp: new Date().toISOString()
+                    };
+
+                    console.log("📍 Saving location:", locationData.lat, locationData.lng);
+                    
+                    // Save to Firebase
+                    await addDoc(collection(db, "locations"), locationData);
+                    
+                    console.log("✅ Location saved to Firebase");
+                    
+                } catch (error) {
+                    console.error("❌ Save location error:", error);
+                    throw error;
+                }
+            }
+
+            logout() {
+                if (confirm("Logout? Your data will remain saved.")) {
+                    this.stopTracking();
+                    this.employee = null;
+                    localStorage.removeItem("employee_profile");
+                    this.renderUI();
+                }
+            }
+        }
+
+        // Start the app
+        document.addEventListener('DOMContentLoaded', () => {
+            window.app = new EmployeeTrackerApp();
+        });
+    </script>
 </body>
 </html>
