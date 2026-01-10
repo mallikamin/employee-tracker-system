@@ -23,6 +23,13 @@ self.addEventListener('activate', (event) => {
     event.waitUntil(clients.claim()); // Take control immediately
 });
 
+
+self.addEventListener('fetch', (event) => {
+    // Just pass through - no caching for now
+    event.respondWith(fetch(event.request));
+});
+
+
 // Handle background sync
 self.addEventListener('sync', (event) => {
     if (event.tag === 'sync-locations') {
@@ -76,8 +83,24 @@ async function getQueuedLocations() {
 
 // Handle messages from main app
 self.addEventListener('message', (event) => {
-    if (event.data && event.data.type === 'QUEUE_LOCATION') {
-        console.log('[SW] Received location to queue:', event.data.location);
-        // Store for later sync
+    console.log('[SW] Message received:', event.data);
+
+    if (!event.data || !event.data.type) return;
+
+    switch (event.data.type) {
+        case 'QUEUE_LOCATION':
+            console.log('[SW] Received location to queue:', event.data.location);
+            // Store for later sync
+            break;
+
+        case 'PING':
+            event.source?.postMessage({
+                type: 'PONG',
+                time: new Date().toISOString()
+            });
+            break;
+
+        default:
+            console.warn('[SW] Unknown message type:', event.data.type);
     }
 });

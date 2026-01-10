@@ -313,44 +313,90 @@ class EmployeeTrackerApp {
 
     async startTracking() {
         if (!navigator.geolocation) {
-            alert("Geolocation not supported");
+            alert("Geolocation not supported by this device");
             return;
         }
-
+    
         try {
-            // Get initial location
-            const position = await this.getCurrentLocationWithPermission();
-            await this.saveLocation(position, false);
+            console.log("Starting tracking...");
             
-            // Start watchPosition
+            // First, check if we have permission by getting one location
+            const testPosition = await this.getCurrentLocationWithPermission({
+                timeout: 10000,
+                maximumAge: 60000 // Accept 1-minute old location
+            });
+            
+            // Save initial location
+            await this.saveLocation(testPosition, false);
+            console.log("Initial location saved");
+            
+            // Start continuous tracking with relaxed settings
             this.watchId = navigator.geolocation.watchPosition(
-                async (pos) => {
-                    if (pos.coords.accuracy < 100) { // Only if accurate
-                        await this.saveLocation(pos, false);
+                async (position) => {
+                    if (position.coords.accuracy < 200) { // Accept up to 200m accuracy
+                        await this.saveLocation(position, false);
+                    } else {
+                        console.log("Low accuracy location skipped:", position.coords.accuracy, "m");
                     }
                 },
-                (err) => {
-                    console.error("GPS error:", err);
-                    // Fallback to periodic
-                    this.startPeriodicFallback();
+                (error) => {
+                    console.warn("WatchPosition error:", error.message);
+                    // Don't stop tracking on occasional errors
+                    // Try to get a location anyway
+                    this.getPeriodicLocation();
                 },
                 {
-                    enableHighAccuracy: true,
-                    maximumAge: 30000,
-                    timeout: 10000
+                    enableHighAccuracy: false, // Changed to false for battery
+                    maximumAge: 30000, // Accept 30-second old locations
+                    timeout: 10000 // 10 seconds
                 }
             );
-
-            // Start 15-minute backup
+    
+            // Start periodic backup (every 15 minutes)
             this.startPeriodicTracking();
             
-            alert("✅ Live tracking started!\n\nTracking every 15 minutes automatically.");
+            alert("✅ Tracking started!\n\nApp will track your location every 15 minutes.\n\n💡 Tip: Keep this app open for best results.");
+            
+            // Try to request PWA installation
+            this.showInstallPrompt();
             
         } catch (error) {
             console.error("Failed to start tracking:", error);
-            alert("❌ Could not start tracking: " + error.message);
+            
+            if (error.message.includes('permission')) {
+                alert("❌ Location permission required!\n\n1. Click the 🔒 lock icon in address bar\n2. Enable 'Location'\n3. Refresh page and try again");
+            } else if (error.message.includes('timeout')) {
+                alert("📍 GPS timeout\n\nMake sure:\n1. You're outdoors or near a window\n2. GPS is enabled on device\n3. Try moving to open area\n\nWill try again automatically...");
+                // Try again with relaxed settings
+                setTimeout(() => this.tryStartTrackingWithFallback(), 5000);
+            } else {
+                alert("❌ Could not start tracking: " + error.message);
+            }
         }
     }
+    
+    async tryStartTrackingWithFallback() {
+        try {
+            console.log("Trying fallback location method...");
+            const position = await this.getCurrentLocationWithPermission({
+                enableHighAccuracy: false,
+                timeout: 30000, // 30 seconds
+                maximumAge: 300000 // Accept 5-minute old location
+            });
+            
+            await this.saveLocation(position, false);
+            this.startPeriodicTracking(); // Start periodic only
+            
+            alert("✅ Tracking started (fallback mode)\n\nWill update every 15 minutes.");
+            
+        } catch (fallbackError) {
+            console.error("Fallback also failed:", fallbackError);
+            alert("❌ Cannot get location. Please check:\n1. GPS is enabled\n2. Location permission granted\n3. Try outdoors");
+        }
+    }
+    
+
+
 
     stopTracking() {
         if (this.watchId) {
@@ -400,8 +446,8 @@ class EmployeeTrackerApp {
             const position = await new Promise((resolve, reject) => {
                 navigator.geolocation.getCurrentPosition(resolve, reject, {
                     enableHighAccuracy: false,
-                    maximumAge: 300000,
-                    timeout: 5000
+                    maximumAge: 300000, // 5 minutes
+                    timeout: 20000, // 20 seconds
                 });
             });
             
@@ -411,27 +457,55 @@ class EmployeeTrackerApp {
             
         } catch (error) {
             console.warn("Periodic location failed:", error.message);
+            // Don't show alert for periodic failures
         }
     }
+    
 
     startPeriodicFallback() {
         console.log("🔄 Falling back to periodic tracking");
         this.startPeriodicTracking();
     }
 
-    getCurrentLocationWithPermission() {
+    getCurrentLocationWithPermission(options = {}) {
         return new Promise((resolve, reject) => {
+            const defaultOptions = {
+                enableHighAccuracy: true,
+                timeout: 15000, // 15 seconds (was 10)
+                maximumAge: 0
+            };
+            
             navigator.geolocation.getCurrentPosition(
-                resolve,
-                reject,
-                {
-                    enableHighAccuracy: true,
-                    timeout: 10000,
-                    maximumAge: 0
-                }
+                (position) => {
+                    console.log("📍 Location obtained:", position.coords.latitude, position.coords.longitude);
+                    resolve(position);
+                },
+                (error) => {
+                    console.error("📍 Location error:", error.code, error.message);
+                    
+                    // Provide more helpful error messages
+                    let errorMessage = "Location error: ";
+                    switch(error.code) {
+                        case 1:
+                            errorMessage = "❌ Location permission denied. Please enable location in settings.";
+                            break;
+                        case 2:
+                            errorMessage = "📍 Position unavailable. Check your GPS/WiFi.";
+                            break;
+                        case 3:
+                            errorMessage = "⏱️ Location timeout. Make sure you're outdoors with clear sky view.";
+                            break;
+                        default:
+                            errorMessage = `Location error: ${error.message}`;
+                    }
+                    
+                    reject(new Error(errorMessage));
+                },
+                { ...defaultOptions, ...options }
             );
         });
     }
+    
 
     async getManualLocation() {
         try {
